@@ -1,0 +1,6 @@
+# Ignore PyCharm project settings configuration directory
+.idea/
+
+# Ignore Python compiled bytecode cache directories
+__pycache__/
+*.pyc
