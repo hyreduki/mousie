@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from updater import MousieUpdater
 
+
 class MousieApp(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -9,7 +10,7 @@ class MousieApp(ctk.CTk):
 
         # Window configuration
         self.title("MOUSIE v1.0.0")
-        self.geometry("850x450")
+        self.geometry("850x520")
         self.resizable(False, False)
         self.configure(fg_color="#1a222d")
 
@@ -23,7 +24,8 @@ class MousieApp(ctk.CTk):
 
     def setup_ui(self):
         # Main title display
-        self.title_label = ctk.CTkLabel(self, text="MOUSIE AUTOMATION PLATFORM", font=("Segoe UI", 16, "bold"), text_color="#ffffff")
+        self.title_label = ctk.CTkLabel(self, text="MOUSIE AUTOMATION PLATFORM", font=("Segoe UI", 16, "bold"),
+                                        text_color="#ffffff")
         self.title_label.pack(pady=(15, 5))
 
         # Main horizontal split container
@@ -33,11 +35,12 @@ class MousieApp(ctk.CTk):
         # ==========================================
         # LEFT VIEWPORT: MODE SELECTION
         # ==========================================
-        self.left_frame = ctk.CTkFrame(self.main_split_container, width=390, corner_radius=10, fg_color="#212b36", border_width=1, border_color="#2d3945")
+        self.left_frame = ctk.CTkFrame(self.main_split_container, width=280, corner_radius=10, fg_color="#212b36", border_width=1, border_color="#2d3945")
         self.left_frame.pack(side="left", fill="both", expand=False, padx=(0, 10))
         self.left_frame.pack_propagate(False)
 
-        self.left_title = ctk.CTkLabel(self.left_frame, text="Select Mode", font=("Segoe UI", 13, "bold"), text_color="#8a99a8")
+        self.left_title = ctk.CTkLabel(self.left_frame, text="Select Mode", font=("Segoe UI", 13, "bold"),
+                                       text_color="#8a99a8")
         self.left_title.pack(pady=(10, 5))
 
         button_args = {
@@ -52,38 +55,44 @@ class MousieApp(ctk.CTk):
             "font": ("Segoe UI", 13)
         }
 
-        self.btn_sleep = ctk.CTkButton(**button_args, text="🧠  Anti-Sleep Mode", command=lambda: self.select_mode("sleep"))
+        self.btn_sleep = ctk.CTkButton(**button_args, text="🧠  Anti-Sleep Mode",
+                                       command=lambda: self.select_mode("sleep"))
         self.btn_sleep.pack(pady=6, padx=15, fill="x")
 
-        self.btn_click = ctk.CTkButton(**button_args, text="🎮  Game Autoclicker", command=lambda: self.select_mode("click"))
+        self.btn_click = ctk.CTkButton(**button_args, text="🎮  Game Autoclicker",
+                                       command=lambda: self.select_mode("click"))
         self.btn_click.pack(pady=6, padx=15, fill="x")
 
-        self.btn_teams = ctk.CTkButton(**button_args, text="🤝  Smart Teams Mode", command=lambda: self.select_mode("teams"))
+        self.btn_teams = ctk.CTkButton(**button_args, text="🤝  Smart Teams Mode",
+                                       command=lambda: self.select_mode("teams"))
         self.btn_teams.pack(pady=6, padx=15, fill="x")
 
-        self.btn_macro = ctk.CTkButton(**button_args, text="🎥  Macro Mode (Record/Play)", command=lambda: self.select_mode("macro"))
+        self.btn_macro = ctk.CTkButton(**button_args, text="🎥  Macro Mode (Record/Play)",
+                                       command=lambda: self.select_mode("macro"))
         self.btn_macro.pack(pady=6, padx=15, fill="x")
 
         # ==========================================
         # RIGHT VIEWPORT: CONFIG PANEL
         # ==========================================
-        self.right_frame = ctk.CTkFrame(self.main_split_container, width=390, corner_radius=10, fg_color="#212b36", border_width=1, border_color="#2d3945")
+        self.right_frame = ctk.CTkFrame(self.main_split_container, width=500, corner_radius=10, fg_color="#212b36", border_width=1, border_color="#2d3945")
         self.right_frame.pack(side="right", fill="both", expand=False, padx=(10, 0))
         self.right_frame.pack_propagate(False)
 
-        self.right_title = ctk.CTkLabel(self.right_frame, text="Configuration & Status", font=("Segoe UI", 13, "bold"), text_color="#8a99a8")
+        self.right_title = ctk.CTkLabel(self.right_frame, text="Configuration & Status", font=("Segoe UI", 13, "bold"),
+                                        text_color="#8a99a8")
         self.right_title.pack(pady=(10, 5))
 
         self.config_placeholder_label = ctk.CTkLabel(
             self.right_frame, text="Select a mode to configure / start", font=("Segoe UI", 13),
-            text_color="#5f758a", wraplength=350, justify="center"
+            text_color="#5f758a", wraplength=460, justify="center"
         )
         self.config_placeholder_label.pack(expand=True, fill="both", padx=15)
 
         # ==========================================
         # BOTTOM CONTROLS
         # ==========================================
-        self.tip_label = ctk.CTkLabel(self, text="Please select a mode from the left panel to begin.", font=("Segoe UI", 11, "italic"), text_color="#8a99a8")
+        self.tip_label = ctk.CTkLabel(self, text="Please select a mode from the left panel to begin.",
+                                      font=("Segoe UI", 11, "italic"), text_color="#8a99a8")
         self.tip_label.pack(pady=(5, 2))
 
         self.control_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -112,7 +121,9 @@ class MousieApp(ctk.CTk):
         popup.resizable(False, False)
         popup.attributes("-topmost", True)
 
-        msg_label = ctk.CTkLabel(popup, text=f"A new version is available on GitHub!\n\nCurrent version: v{self.CURRENT_VERSION}\nLatest version: v{new_version}", font=("Arial", 13, "bold"))
+        msg_label = ctk.CTkLabel(popup,
+                                 text=f"A new version is available on GitHub!\n\nCurrent version: v{self.CURRENT_VERSION}\nLatest version: v{new_version}",
+                                 font=("Arial", 13, "bold"))
         msg_label.pack(pady=25)
 
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
@@ -124,7 +135,8 @@ class MousieApp(ctk.CTk):
                                    command=lambda: [popup.destroy(), self.updater.start_download_worker(download_url)])
         btn_update.pack(side="left", expand=True, padx=5)
 
-        btn_later = ctk.CTkButton(btn_frame, text="Later", fg_color=("#ced6e0", "#2f3542"), text_color=("#2f3542", "#f1f2f6"), command=popup.destroy)
+        btn_later = ctk.CTkButton(btn_frame, text="Later", fg_color=("#ced6e0", "#2f3542"),
+                                  text_color=("#2f3542", "#f1f2f6"), command=popup.destroy)
         btn_later.pack(side="right", expand=True, padx=5)
 
     def select_mode(self, mode):
@@ -136,24 +148,162 @@ class MousieApp(ctk.CTk):
         self.btn_teams.configure(fg_color=default_bg, text_color=default_text, border_color="#3a4959")
         self.btn_macro.configure(fg_color=default_bg, text_color=default_text, border_color="#3a4959")
 
+        # Clear the right frame entirely to draw fresh mode-specific settings
+        for widget in self.right_frame.winfo_children():
+            if widget != self.right_title:
+                widget.destroy()
+
         if mode == "sleep":
             self.btn_sleep.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
-            self.config_placeholder_label.configure(text="🧠 Anti-Sleep Mode Configuration\n\nThis mode simulates microscopic cursor shifts to keep your operating system awake natively. No artificial mouse clicks are triggered.\n\nReady to activate.", text_color="#ffffff")
-            self.tip_label.configure(text="Anti-Sleep Mode selected. Press F7 or click START.")
+            self.tip_label.configure(text="Anti-Sleep Mode selected. Configure your strategy and click START.")
+
+            # Container for layout architecture inside the fixed frame
+            scroll_container = ctk.CTkFrame(self.right_frame, fg_color="transparent")
+            scroll_container.pack(fill="both", expand=True, padx=20, pady=10)
+
+            # 1. Strategy Selector (Mouse vs Keyboard)
+            self.frame_strategy = ctk.CTkFrame(scroll_container, fg_color="transparent")
+            self.frame_strategy.pack(fill="x", pady=(5, 12))
+
+            lbl_strategy = ctk.CTkLabel(self.frame_strategy, text="Execution Strategy:", font=("Segoe UI", 12, "bold"),
+                                        text_color="#d0dbe5")
+            lbl_strategy.pack(anchor="w", pady=(0, 2))
+
+            self.combo_strategy = ctk.CTkComboBox(
+                self.frame_strategy, values=["Mouse Micro-Movement", "Keyboard Key Strike"],
+                fg_color="#2a3543", border_color="#3a4959", button_color="#2a3543",
+                button_hover_color="#364556", text_color="#ffffff", dropdown_fg_color="#212b36",
+                dropdown_text_color="#ffffff", command=self._toggle_sleep_strategy_view
+            )
+            self.combo_strategy.pack(fill="x")
+
+            # 2. Key Selection Frame (Starts hidden/unpacked)
+            self.frame_key_select = ctk.CTkFrame(scroll_container, fg_color="transparent")
+            lbl_key = ctk.CTkLabel(self.frame_key_select, text="Select Key to Strike:", font=("Segoe UI", 12, "bold"),
+                                   text_color="#d0dbe5")
+            lbl_key.pack(anchor="w", pady=(0, 2))
+            self.combo_key = ctk.CTkComboBox(
+                self.frame_key_select, values=["Right Shift", "+ (Plus Key)", "F15"],
+                fg_color="#2a3543", border_color="#3a4959", button_color="#2a3543",
+                text_color="#ffffff", dropdown_fg_color="#212b36", dropdown_text_color="#ffffff"
+            )
+            self.combo_key.pack(fill="x")
+
+            # 3. Pixel Distance Slider Frame (Starts visible)
+            self.frame_pixel_slider = ctk.CTkFrame(scroll_container, fg_color="transparent")
+            self.frame_pixel_slider.pack(fill="x", pady=(0, 12))
+
+            self.lbl_pixels = ctk.CTkLabel(self.frame_pixel_slider, text="Pixel Distance: 1 px",
+                                           font=("Segoe UI", 12, "bold"), text_color="#d0dbe5")
+            self.lbl_pixels.pack(anchor="w")
+
+            self.slider_pixels = ctk.CTkSlider(
+                self.frame_pixel_slider, from_=1, to=100, number_of_steps=99,
+                fg_color="#2a3543", progress_color="#1e90ff", button_color="#1e90ff",
+                command=lambda v: self.lbl_pixels.configure(text=f"Pixel Distance: {int(v)} px")
+            )
+            self.slider_pixels.set(1)
+            self.slider_pixels.pack(fill="x", pady=2)
+
+            # 4. Time Interval Slider Frame (Always visible)
+            self.frame_time_slider = ctk.CTkFrame(scroll_container, fg_color="transparent")
+            self.frame_time_slider.pack(fill="x", pady=(0, 12))
+
+            lbl_time = ctk.CTkLabel(self.frame_time_slider, text="Time Interval:", font=("Segoe UI", 12, "bold"),
+                                    text_color="#d0dbe5")
+            lbl_time.pack(anchor="w")
+
+            self.lbl_time_value = ctk.CTkLabel(self.frame_time_slider, text="10 seconds",
+                                               font=("Segoe UI", 11, "italic"), text_color="#8a99a8")
+            self.lbl_time_value.pack(anchor="w", pady=(0, 2))
+
+            self.slider_time = ctk.CTkSlider(
+                self.frame_time_slider, from_=1, to=500, number_of_steps=499,
+                fg_color="#2a3543", progress_color="#1e90ff", button_color="#1e90ff",
+                command=self._update_time_slider_label
+            )
+            self.slider_time.set(10)
+            self.slider_time.pack(fill="x", pady=2)
+
+            # 5. Randomize Jitter Control Frame (Always visible at the bottom)
+            self.frame_jitter = ctk.CTkFrame(scroll_container, fg_color="transparent")
+            self.frame_jitter.pack(fill="x", pady=(5, 0))
+
+            self.switch_random = ctk.CTkSwitch(
+                self.frame_jitter, text="Enable Randomized Jitter", font=("Segoe UI", 12),
+                text_color="#d0dbe5", fg_color="#2a3543", progress_color="#1e90ff",
+                command=self._update_time_slider_label
+            )
+            self.switch_random.pack(side="left", anchor="w")
+
+            self.btn_info = ctk.CTkButton(
+                self.frame_jitter, text="ⓘ", width=20, height=20, font=("Segoe UI", 12, "bold"),
+                fg_color="transparent", text_color="#1e90ff", hover_color="#2a3543",
+                command=self._show_jitter_info
+            )
+            self.btn_info.pack(side="left", padx=8)
+
         elif mode == "click":
             self.btn_click.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
-            self.config_placeholder_label.configure(text="🎮 Game Autoclicker Configuration\n\nTriggers ultra-high frequency clicks at your current cursor location. Ideal for gaming inputs.\n\n[Settings inputs will be placed here]", text_color="#ffffff")
-            self.tip_label.configure(text="Game Autoclicker selected. Press F7 or click START.")
+            lbl = ctk.CTkLabel(self.right_frame, text="🎮 Game Autoclicker Settings\n\n[Inputs pending compilation]",
+                               font=("Segoe UI", 13), text_color="#5f758a")
+            lbl.pack(expand=True)
+
         elif mode == "teams":
             self.btn_teams.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
-            self.config_placeholder_label.configure(text="🤝 Smart Teams Mode Configuration\n\nSimulates authentic, human-like workflow activity to safely maintain active presence statuses across corporate messaging clients.\n\nReady to activate.", text_color="#ffffff")
-            self.tip_label.configure(text="Smart Teams Mode selected. Press F7 or click START.")
+            lbl = ctk.CTkLabel(self.right_frame, text="🤝 Smart Teams Settings\n\n[Inputs pending compilation]",
+                               font=("Segoe UI", 13), text_color="#5f758a")
+            lbl.pack(expand=True)
+
         elif mode == "macro":
             self.btn_macro.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
-            self.config_placeholder_label.configure(text="🎥 Macro Recorder Configuration\n\nRecord complex mouse trajectories and keyboard strokes to loop them automatically.\n\n[Macro tools will be placed here]", text_color="#ffffff")
-            self.tip_label.configure(text="Macro Recorder selected.")
+            lbl = ctk.CTkLabel(self.right_frame, text="🎥 Macro Recorder Settings\n\n[Inputs pending compilation]",
+                               font=("Segoe UI", 13), text_color="#5f758a")
+            lbl.pack(expand=True)
 
         self.btn_start.configure(state="normal")
+
+    # --- UI HELPER METHODS FOR DYNAMIC VIEWPORTS ---
+    def _toggle_sleep_strategy_view(self, choice):
+        if choice == "Keyboard Key Strike":
+            self.frame_pixel_slider.pack_forget()
+            self.frame_key_select.pack(fill="x", pady=(0, 12), before=self.frame_time_slider)
+        else:
+            self.frame_key_select.pack_forget()
+            self.frame_pixel_slider.pack(fill="x", pady=(0, 12), before=self.frame_time_slider)
+
+    def _update_time_slider_label(self, value=None):
+        seconds = int(self.slider_time.get())
+        if self.switch_random.get():
+            min_val = max(1, int(seconds * 0.75))
+            max_val = int(seconds * 1.25)
+            self.lbl_time_value.configure(text=f"Randomized between {min_val}s and {max_val}s (Target: {seconds}s)")
+        else:
+            self.lbl_time_value.configure(text=f"{seconds} seconds")
+
+    def _show_jitter_info(self):
+        # Clean information pop-up architecture for randomized intervals
+        info_window = ctk.CTkToplevel(self)
+        info_window.title("What is Randomized Jitter?")
+        info_window.geometry("360x180")
+        info_window.resizable(False, False)
+        info_window.attributes("-topmost", True)
+        info_window.configure(fg_color="#212b36")
+
+        txt = (
+            "Randomized Jitter prevents corporate monitoring algorithms from detecting "
+            "automated activity.\n\n"
+            "Instead of executing actions at exact static intervals (e.g., precisely every 10 seconds), "
+            "it slightly shifts the delay dynamically each turn. This creates an authentic, human-like pattern."
+        )
+
+        lbl = ctk.CTkLabel(info_window, text=txt, font=("Segoe UI", 12), text_color="#d0dbe5", wraplength=320,
+                           justify="left")
+        lbl.pack(expand=True, padx=20, pady=(20, 10))
+
+        btn_close = ctk.CTkButton(info_window, text="Understood", height=32, fg_color="#2a3543", text_color="#ffffff",
+                                  hover_color="#364556", command=info_window.destroy)
+        btn_close.pack(pady=(0, 15))
 
     def start_action(self):
         self.is_running = True
