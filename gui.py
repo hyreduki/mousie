@@ -43,7 +43,7 @@ class MousieApp(ctk.CTk):
 
     def setup_ui(self):
         # Main title display
-        self.title_label = ctk.CTkLabel(self, text="MOUSIE AUTOMATION PLATFORM", font=("Segoe UI", 16, "bold"),
+        self.title_label = ctk.CTkLabel(self, text="MOUSIE PLATFORM", font=("Segoe UI", 16, "bold"),
                                         text_color="#ffffff")
         self.title_label.pack(pady=(15, 5))
 
@@ -118,20 +118,23 @@ class MousieApp(ctk.CTk):
         self.control_frame.pack(pady=(2, 15), padx=20, fill="x")
 
         self.btn_start = ctk.CTkButton(
-            self.control_frame, text="▶  START", height=45, corner_radius=8,
-            fg_color="#1b5e3a", text_color="#a3e2bc", hover_color="#227a4b",
-            border_width=1, border_color="#2b8c56", font=("Segoe UI", 13, "bold"),
+            self.control_frame, text="▶  START (F8)", height=45, corner_radius=8,
+            fg_color="#2a3543", text_color="#5f758a", hover_color="#2a3543",
+            border_width=1, border_color="#3a4959", font=("Segoe UI", 13, "bold"),
             state="disabled", command=self.start_action
         )
         self.btn_start.pack(side="left", padx=5, expand=True, fill="x")
 
         self.btn_stop = ctk.CTkButton(
-            self.control_frame, text="■  STOP", height=45, corner_radius=8,
-            fg_color="#7a2222", text_color="#e2a3a3", hover_color="#992b2b",
-            border_width=1, border_color="#bc2b2b", font=("Segoe UI", 13, "bold"),
+            self.control_frame, text="■  STOP (F8)", height=45, corner_radius=8,
+            fg_color="#2a3543", text_color="#5f758a", hover_color="#2a3543",
+            border_width=1, border_color="#3a4959", font=("Segoe UI", 13, "bold"),
             state="disabled", command=self.stop_action
         )
         self.btn_stop.pack(side="right", padx=5, expand=True, fill="x")
+
+        # Bind the global F8 hotkey to the toggle logic
+        self.bind_all("<F8>", self.toggle_action)
 
     def show_update_popup(self, new_version, github_data):
         popup = ctk.CTkToplevel(self)
@@ -223,7 +226,7 @@ class MousieApp(ctk.CTk):
             self.lbl_pixels.pack(anchor="w")
 
             self.slider_pixels = ctk.CTkSlider(
-                self.frame_pixel_slider, from_=1, to=100, number_of_steps=99,
+                self.frame_pixel_slider, from_=1, to=500, number_of_steps=499,
                 fg_color="#2a3543", progress_color="#1e90ff", button_color="#1e90ff",
                 command=lambda v: [self.lbl_pixels.configure(text=f"Pixel Distance: {int(v)} px"),
                                    self.config_data.update({"pixel_distance": int(v)}), self.save_config()]
@@ -297,10 +300,13 @@ class MousieApp(ctk.CTk):
 
             self.btn_info = ctk.CTkButton(
                 self.frame_jitter, text="ⓘ", width=20, height=20, font=("Segoe UI", 12, "bold"),
-                fg_color="transparent", text_color="#1e90ff", hover_color="#2a3543",
-                command=self._show_jitter_info
+                fg_color="transparent", text_color="#1e90ff", hover_color="#2a3543"
             )
             self.btn_info.pack(side="left", padx=8)
+
+            # Bind hover events for the tooltip
+            self.btn_info.bind("<Enter>", self._show_tooltip)
+            self.btn_info.bind("<Leave>", self._hide_tooltip)
 
             # Trigger initial view layout
             self._toggle_sleep_strategy_view(self.config_data.get("strategy", "Mouse Micro-Movement"))
@@ -323,7 +329,15 @@ class MousieApp(ctk.CTk):
                                font=("Segoe UI", 13), text_color="#5f758a")
             lbl.pack(expand=True)
 
-        self.btn_start.configure(state="normal")
+        # Light up the START button, ensure STOP is dimmed
+        self.btn_start.configure(
+            state="normal",
+            fg_color="#1b5e3a", text_color="#a3e2bc", hover_color="#227a4b", border_color="#2b8c56"
+        )
+        self.btn_stop.configure(
+            state="disabled",
+            fg_color="#2a3543", text_color="#5f758a", hover_color="#2a3543", border_color="#3a4959"
+        )
 
     # --- UI HELPER METHODS FOR DYNAMIC VIEWPORTS ---
     def _toggle_sleep_strategy_view(self, choice):
@@ -346,34 +360,56 @@ class MousieApp(ctk.CTk):
         self.config_data.update({"use_jitter": self.switch_random.get()})
         self.save_config()
 
-    def _show_jitter_info(self):
-        # Clean information pop-up architecture for randomized intervals
-        info_window = ctk.CTkToplevel(self)
-        info_window.title("What is Randomized Jitter?")
-        info_window.geometry("360x180")
-        info_window.resizable(False, False)
-        info_window.attributes("-topmost", True)
-        info_window.configure(fg_color="#212b36")
+    def _show_tooltip(self, event):
+        self.tooltip = ctk.CTkToplevel(self)
+        self.tooltip.overrideredirect(True)  # Removes the Windows border/title bar
+        self.tooltip.attributes("-topmost", True)
+        self.tooltip.configure(fg_color="#2a3543")
+
+        # Position the tooltip slightly offset from the mouse cursor
+        x = event.x_root + 15
+        y = event.y_root + 15
+        self.tooltip.geometry(f"+{x}+{y}")
+
+        # Add a nice border and text
+        border = ctk.CTkFrame(self.tooltip, fg_color="#212b36", border_width=1, border_color="#3a4959", corner_radius=4)
+        border.pack(fill="both", expand=True)
 
         txt = (
-            "Randomized Jitter prevents corporate monitoring algorithms from detecting "
-            "automated activity.\n\n"
-            "Instead of executing actions at exact static intervals (e.g., precisely every 10 seconds), "
-            "it slightly shifts the delay dynamically each turn. This creates an authentic, human-like pattern."
+            "Randomized Jitter prevents monitoring tools from detecting automated activity.\n\n"
+            "It slightly shifts the delay dynamically each turn to create a human-like pattern."
         )
 
-        lbl = ctk.CTkLabel(info_window, text=txt, font=("Segoe UI", 12), text_color="#d0dbe5", wraplength=320,
+        lbl = ctk.CTkLabel(border, text=txt, font=("Segoe UI", 11), text_color="#d0dbe5", wraplength=250,
                            justify="left")
-        lbl.pack(expand=True, padx=20, pady=(20, 10))
+        lbl.pack(padx=12, pady=10)
 
-        btn_close = ctk.CTkButton(info_window, text="Understood", height=32, fg_color="#2a3543", text_color="#ffffff",
-                                  hover_color="#364556", command=info_window.destroy)
-        btn_close.pack(pady=(0, 15))
+    def _hide_tooltip(self, event):
+        if hasattr(self, "tooltip") and self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+    def toggle_action(self, event=None):
+        if self.is_running:
+            self.stop_action()
+        else:
+            # Only trigger start if a mode is actively selected and the start button is enabled
+            if self.btn_start.cget("state") == "normal":
+                self.start_action()
 
     def start_action(self):
         self.is_running = True
-        self.btn_start.configure(state="disabled")
-        self.btn_stop.configure(state="normal")
+
+        # Dim START, Light up STOP
+        self.btn_start.configure(
+            state="disabled",
+            fg_color="#2a3543", text_color="#5f758a", hover_color="#2a3543", border_color="#3a4959"
+        )
+        self.btn_stop.configure(
+            state="normal",
+            fg_color="#7a2222", text_color="#e2a3a3", hover_color="#992b2b", border_color="#bc2b2b"
+        )
+
         self.tip_label.configure(text=f"STATUS: RUNNING 🚀 ({self.selected_mode.upper()} ACTIVE)", text_color="#2ed573")
 
         if self.selected_mode == "sleep":
@@ -391,6 +427,26 @@ class MousieApp(ctk.CTk):
                 self.save_config()
             except ValueError:
                 time_min, time_max = 10, 30
+
+            # The muted color palette for the disabled state
+            disabled_text = "#5f758a"
+            disabled_accent = "#3a4959"
+
+            # Lock the UI controls and visually dim them to indicate they are frozen
+            self.combo_strategy.configure(state="disabled", text_color=disabled_text, button_color=disabled_accent)
+            self.combo_key.configure(state="disabled", text_color=disabled_text, button_color=disabled_accent)
+
+            self.slider_pixels.configure(state="disabled", progress_color=disabled_accent, button_color=disabled_text)
+            self.slider_time.configure(state="disabled", progress_color=disabled_accent, button_color=disabled_text)
+
+            self.switch_random.configure(state="disabled", text_color=disabled_text, progress_color=disabled_accent)
+
+            self.entry_min.configure(state="disabled", text_color=disabled_text)
+            self.entry_max.configure(state="disabled", text_color=disabled_text)
+
+            # Dim the dynamic text labels as well for a complete locked-down look
+            self.lbl_pixels.configure(text_color=disabled_text)
+            self.lbl_time_value.configure(text_color=disabled_text)
 
             self.sleep_worker = AntiSleepWorker(
                 strategy=strategy,
