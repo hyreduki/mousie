@@ -2,136 +2,153 @@ import customtkinter as ctk
 import requests
 import threading
 
-ctk.set_appearance_mode("System")  
+# Forceer direct de Dark Mode voor die strakke look
+ctk.set_appearance_mode("Dark")  
 ctk.set_default_color_theme("blue")
 
-class SuperClickerGUI(ctk.CTk):
+class MousieApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Local application version
         self.CURRENT_VERSION = "1.0.0"
-        
-        # Public GitHub API URL for tracking live releases
         self.UPDATE_URL = "https://api.github.com/repos/hyreduki/mousie/releases/latest"
 
-        # Window configuration
-        self.title("SUPER CLICKER PRO v2.1")
-        self.geometry("500x550")
+        # Venster breder gemaakt (850px) om plaats te maken voor het rechterpaneel
+        self.title("MOUSIE v1.0.0")
+        self.geometry("850x450") 
         self.resizable(False, False)
+        
+        # Diepe donkere Windows 11 kleur voor de achtergrond
+        self.configure(fg_color="#1a222d")
 
         self.selected_mode = None
         self.is_running = False
 
-        # --- SETUP INTERFACE ---
         self.setup_ui()
-
-        # --- AUTO-UPDATE CHECK ---
-        # Executed in a separate thread to prevent the GUI from stuttering on startup
         threading.Thread(target=self.check_for_updates, daemon=True).start()
 
     def setup_ui(self):
-        # Settings cog (top right)
-        self.settings_button = ctk.CTkButton(self, text="⚙️", width=35, height=35, font=("Arial", 16), fg_color="transparent", command=self.open_settings)
-        self.settings_button.place(x=450, y=10)
+        # Main title display across the top width
+        self.title_label = ctk.CTkLabel(self, text="MOUSIE AUTOMATION PLATFORM", font=("Segoe UI", 16, "bold"), text_color="#ffffff")
+        self.title_label.pack(pady=(15, 5))
 
-        # Main Title
-        self.title_label = ctk.CTkLabel(self, text="MODE SELECTION", font=("Arial", 16, "bold"), text_color=("#1e90ff", "#70a1ff"))
-        self.title_label.pack(pady=(20, 15))
+        # Main horizontal split container for left and right viewports
+        self.main_split_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_split_container.pack(pady=5, padx=20, fill="both", expand=True)
 
-        # Mode Selection Panel Container
-        self.mode_frame = ctk.CTkFrame(self, corner_radius=12)
-        self.mode_frame.pack(pady=10, padx=30, fill="both", expand=True)
+        # ==========================================
+        # LEFT VIEWPORT: MODE SELECTION (Fixed width: 390px)
+        # ==========================================
+        self.left_frame = ctk.CTkFrame(self.main_split_container, width=390, corner_radius=10, fg_color="#212b36", border_width=1, border_color="#2d3945")
+        self.left_frame.pack(side="left", fill="both", expand=False, padx=(0, 10))
+        self.left_frame.pack_propagate(False) # Prevents layout shifting from child widget dimensions
 
-        # 1. Anti-Sleep Mode Panel
-        self.btn_sleep = ctk.CTkButton(self.mode_frame, text="🧠  Anti-Sleep Mode", height=45, fg_color=("#ced6e0", "#2f3542"), text_color=("#2f3542", "#f1f2f6"), font=("Arial", 13, "bold"), command=lambda: self.select_mode("sleep"))
-        self.btn_sleep.pack(pady=8, padx=20, fill="x")
+        self.left_title = ctk.CTkLabel(self.left_frame, text="Select Mode", font=("Segoe UI", 13, "bold"), text_color="#8a99a8")
+        self.left_title.pack(pady=(10, 5))
 
-        # 2. Game Autoclicker Panel
-        self.btn_click = ctk.CTkButton(self.mode_frame, text="🎮  Game Autoclicker", height=45, fg_color=("#ced6e0", "#2f3542"), text_color=("#2f3542", "#f1f2f6"), font=("Arial", 13, "bold"), command=lambda: self.select_mode("click"))
-        self.btn_click.pack(pady=8, padx=20, fill="x")
+        # Standard dictionary layout settings for core execution buttons
+        button_args = {
+            "master": self.left_frame,
+            "height": 45,
+            "corner_radius": 8,
+            "fg_color": "#2a3543",
+            "text_color": "#d0dbe5",
+            "hover_color": "#364556",
+            "border_width": 1,
+            "border_color": "#3a4959",
+            "font": ("Segoe UI", 13)
+        }
 
-        # 3. Smart Teams Mode Panel
-        self.btn_teams = ctk.CTkButton(self.mode_frame, text="🤝  Smart Teams Mode", height=45, fg_color=("#ced6e0", "#2f3542"), text_color=("#2f3542", "#f1f2f6"), font=("Arial", 13, "bold"), command=lambda: self.select_mode("teams"))
-        self.btn_teams.pack(pady=8, padx=20, fill="x")
+        self.btn_sleep = ctk.CTkButton(**button_args, text="🧠  Anti-Sleep Mode", command=lambda: self.select_mode("sleep"))
+        self.btn_sleep.pack(pady=6, padx=15, fill="x")
 
-        # 4. Macro Mode Panel
-        self.btn_macro = ctk.CTkButton(self.mode_frame, text="🎥  Macro Mode (Record/Play)", height=45, fg_color=("#ced6e0", "#2f3542"), text_color=("#2f3542", "#f1f2f6"), font=("Arial", 13, "bold"), command=lambda: self.select_mode("macro"))
-        self.btn_macro.pack(pady=8, padx=20, fill="x")
+        self.btn_click = ctk.CTkButton(**button_args, text="🎮  Game Autoclicker", command=lambda: self.select_mode("click"))
+        self.btn_click.pack(pady=6, padx=15, fill="x")
 
-        # Context-aware status/help label
-        self.tip_label = ctk.CTkLabel(self, text="Please select a mode below to begin.", font=("Arial", 12, "italic"), text_color="gray")
-        self.tip_label.pack(pady=10)
+        self.btn_teams = ctk.CTkButton(**button_args, text="🤝  Smart Teams Mode", command=lambda: self.select_mode("teams"))
+        self.btn_teams.pack(pady=6, padx=15, fill="x")
 
-        # Main Control Action Layout
+        self.btn_macro = ctk.CTkButton(**button_args, text="🎥  Macro Mode (Record/Play)", command=lambda: self.select_mode("macro"))
+        self.btn_macro.pack(pady=6, padx=15, fill="x")
+
+        # ==========================================
+        # RIGHT VIEWPORT: CONFIG PANEL (Fixed width: 390px)
+        # ==========================================
+        self.right_frame = ctk.CTkFrame(self.main_split_container, width=390, corner_radius=10, fg_color="#212b36", border_width=1, border_color="#2d3945")
+        self.right_frame.pack(side="right", fill="both", expand=False, padx=(10, 0))
+        self.right_frame.pack_propagate(False) # Prevents layout shifting from child widget dimensions
+
+        self.right_title = ctk.CTkLabel(self.right_frame, text="Configuration & Status", font=("Segoe UI", 13, "bold"), text_color="#8a99a8")
+        self.right_title.pack(pady=(10, 5))
+
+        # Content status label configured with auto-wrapping for text boundaries
+        self.config_placeholder_label = ctk.CTkLabel(
+            self.right_frame, 
+            text="Select a mode to configure / start", 
+            font=("Segoe UI", 13), 
+            text_color="#5f758a",
+            wraplength=350,
+            justify="center"
+        )
+        self.config_placeholder_label.pack(expand=True, fill="both", padx=15)
+
+        # ==========================================
+        # BOTTOM CONTROLS & SYSTEM FEEDBACK LINE
+        # ==========================================
+        self.tip_label = ctk.CTkLabel(self, text="Please select a mode from the left panel to begin.", font=("Segoe UI", 11, "italic"), text_color="#8a99a8")
+        self.tip_label.pack(pady=(5, 2))
+
         self.control_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.control_frame.pack(pady=(10, 25), padx=30, fill="x")
+        self.control_frame.pack(pady=(2, 15), padx=20, fill="x")
 
-        self.btn_start = ctk.CTkButton(self.control_frame, text="▶  START", height=50, fg_color=("#2ed573", "#26af5f"), font=("Arial", 14, "bold"), state="disabled", command=self.start_action)
+        self.btn_start = ctk.CTkButton(
+            self.control_frame, text="▶  START", height=45, corner_radius=8,
+            fg_color="#1b5e3a", text_color="#a3e2bc", hover_color="#227a4b",
+            border_width=1, border_color="#2b8c56", font=("Segoe UI", 13, "bold"),
+            state="disabled", command=self.start_action
+        )
         self.btn_start.pack(side="left", padx=5, expand=True, fill="x")
 
-        self.btn_stop = ctk.CTkButton(self.control_frame, text="■  STOP", height=50, fg_color=("#ff4757", "#ff6b81"), font=("Arial", 14, "bold"), state="disabled", command=self.stop_action)
+        self.btn_stop = ctk.CTkButton(
+            self.control_frame, text="■  STOP", height=45, corner_radius=8,
+            fg_color="#7a2222", text_color="#e2a3a3", hover_color="#992b2b",
+            border_width=1, border_color="#bc2b2b", font=("Segoe UI", 13, "bold"),
+            state="disabled", command=self.stop_action
+        )
         self.btn_stop.pack(side="right", padx=5, expand=True, fill="x")
 
     # --- LIVE GITHUB UPDATE LOGIC ---
     def check_for_updates(self):
         try:
-            # Send an anonymous query to your public GitHub repo metadata
             response = requests.get(self.UPDATE_URL, timeout=5)
-            
-            # If no live releases exist yet on GitHub, handle the 404 cleanly
-            if response.status_code == 404:
-                print("No live releases found on GitHub yet. This is expected during initial setup.")
-                return
-                
+            if response.status_code == 404: return
             github_data = response.json()
-            
-            # Clean target tag string data (e.g., "v1.1.0" -> "1.1.0")
-            latest_version = github_data["tag_name"].replace("v", "") 
-            
-            # Trigger update sequence if online version does not equal local current version
+            latest_version = github_data["tag_name"].lower().replace("v", "") 
             if latest_version != self.CURRENT_VERSION:
-                # Ensure an actual executable installation asset is linked in the release payload
                 if github_data["assets"]:
                     self.after(0, lambda: self.show_update_popup(latest_version, github_data))
         except Exception as e:
             print(f"Update verification sequence failed: {e}")
 
-    # --- POPUP UPDATE OVERLAY PANEL ---
     def show_update_popup(self, new_version, github_data):
         popup = ctk.CTkToplevel(self)
         popup.title("Update Available!")
         popup.geometry("380x200")
         popup.resizable(False, False)
-        popup.attributes("-topmost", True) # Keep window prioritized on top layer
+        popup.attributes("-topmost", True)
 
-        # Informational prompt display
-        msg_label = ctk.CTkLabel(
-            popup, 
-            text=f"A new version is available on GitHub!\n\nCurrent version: v{self.CURRENT_VERSION}\nLatest version: v{new_version}",
-            font=("Arial", 13, "bold")
-        )
+        msg_label = ctk.CTkLabel(popup, text=f"A new version is available on GitHub!\n\nCurrent version: v{self.CURRENT_VERSION}\nLatest version: v{new_version}", font=("Arial", 13, "bold"))
         msg_label.pack(pady=25)
 
-        # Control Action Buttons Container
         btn_frame = ctk.CTkFrame(popup, fg_color="transparent")
         btn_frame.pack(pady=10, fill="x", padx=20)
 
-        # Extract primary download link payload from first index array
         download_url = github_data["assets"][0]["browser_download_url"]
 
-        # Action: Confirmation Download Trigger
-        btn_update = ctk.CTkButton(
-            btn_frame, text="Download Now 🚀", fg_color="#1e90ff", font=("Arial", 12, "bold"),
-            command=lambda: self.trigger_actual_download(popup, download_url)
-        )
+        btn_update = ctk.CTkButton(btn_frame, text="Download Now 🚀", fg_color="#1e90ff", font=("Arial", 12, "bold"), command=lambda: self.trigger_actual_download(popup, download_url))
         btn_update.pack(side="left", expand=True, padx=5)
 
-        # Action: Defer Update Dismissal
-        btn_later = ctk.CTkButton(
-            btn_frame, text="Later", fg_color=("#ced6e0", "#2f3542"), text_color=("#2f3542", "#f1f2f6"),
-            command=popup.destroy
-        )
+        btn_later = ctk.CTkButton(btn_frame, text="Later", fg_color=("#ced6e0", "#2f3542"), text_color=("#2f3542", "#f1f2f6"), command=popup.destroy)
         btn_later.pack(side="right", expand=True, padx=5)
 
     def trigger_actual_download(self, popup_window, download_url):
@@ -143,24 +160,15 @@ class SuperClickerGUI(ctk.CTk):
         try:
             import os
             import subprocess
-            
-            # Determine correct localized destination filename string
             filename = url.split("/")[-1]
             download_path = os.path.join(os.environ['TEMP'], filename)
-            
-            # Stream payload chunk buffers directly into local AppData local temp directory
             r = requests.get(url, stream=True)
             with open(download_path, 'wb') as f:
                 for chunk in r.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-            
+                    if chunk: f.write(chunk)
             self.tip_label.configure(text="Download complete! Initializing setup installation process...", text_color="#2ed573")
-            
-            # Execute downloaded deployment binary setup stream
             subprocess.Popen([download_path], shell=True)
             self.quit()
-            
         except Exception as e:
             self.tip_label.configure(text=f"Download transaction routine failed: {e}", text_color="#ff4757")
 
@@ -168,24 +176,29 @@ class SuperClickerGUI(ctk.CTk):
     def select_mode(self, mode):
         if self.is_running: return
         self.selected_mode = mode
-        default_bg, default_text = ("#ced6e0", "#2f3542"), ("#2f3542", "#f1f2f6")
-        self.btn_sleep.configure(fg_color=default_bg, text_color=default_text)
-        self.btn_click.configure(fg_color=default_bg, text_color=default_text)
-        self.btn_teams.configure(fg_color=default_bg, text_color=default_text)
-        self.btn_macro.configure(fg_color=default_bg, text_color=default_text)
+        default_bg, default_text = ("#2a3543", "#d0dbe5")
+        self.btn_sleep.configure(fg_color=default_bg, text_color=default_text, border_color="#3a4959")
+        self.btn_click.configure(fg_color=default_bg, text_color=default_text, border_color="#3a4959")
+        self.btn_teams.configure(fg_color=default_bg, text_color=default_text, border_color="#3a4959")
+        self.btn_macro.configure(fg_color=default_bg, text_color=default_text, border_color="#3a4959")
 
+        # Hier passen we dynamisch de tekst aan de rechterkant aan op basis van de gekozen modus
         if mode == "sleep":
-            self.btn_sleep.configure(fg_color="#1e90ff", text_color="white")
-            self.tip_label.configure(text="Anti-Sleep Mode selected. Press F7 to START.")
+            self.btn_sleep.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
+            self.config_placeholder_label.configure(text="🧠 Anti-Sleep Mode Configuration\n\nThis mode simulates microscopic cursor shifts\nto keep your operating system awake natively.\nNo artificial mouse clicks are triggered.\n\nReady to activate.", text_color="#ffffff")
+            self.tip_label.configure(text="Anti-Sleep Mode selected. Press F7 or click START.")
         elif mode == "click":
-            self.btn_click.configure(fg_color="#1e90ff", text_color="white")
-            self.tip_label.configure(text="Game Autoclicker selected. Press F7 to START.")
+            self.btn_click.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
+            self.config_placeholder_label.configure(text="🎮 Game Autoclicker Configuration\n\nTriggers ultra-high frequency clicks at your\ncurrent cursor location. Ideal for gaming inputs.\n\n[Settings inputs will be placed here]", text_color="#ffffff")
+            self.tip_label.configure(text="Game Autoclicker selected. Press F7 or click START.")
         elif mode == "teams":
-            self.btn_teams.configure(fg_color="#1e90ff", text_color="white")
-            self.tip_label.configure(text="Smart Teams Mode selected. Press F7 to START.")
+            self.btn_teams.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
+            self.config_placeholder_label.configure(text="🤝 Smart Teams Mode Configuration\n\nSimulates authentic, human-like workflow activity\nto safely maintain active presence statuses\nacross corporate messaging clients.\n\nReady to activate.", text_color="#ffffff")
+            self.tip_label.configure(text="Smart Teams Mode selected. Press F7 or click START.")
         elif mode == "macro":
-            self.btn_macro.configure(fg_color="#1e90ff", text_color="white")
-            self.tip_label.configure(text="Macro Recorder selected. View configuration settings via ⚙️.")
+            self.btn_macro.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
+            self.config_placeholder_label.configure(text="🎥 Macro Recorder Configuration\n\nRecord complex mouse trajectories and keyboard\nstrokes to loop them automatically.\n\n[Macro tools will be placed here]", text_color="#ffffff")
+            self.tip_label.configure(text="Macro Recorder selected.")
 
         self.btn_start.configure(state="normal")
 
@@ -201,9 +214,6 @@ class SuperClickerGUI(ctk.CTk):
         self.btn_start.configure(state="normal")
         self.select_mode(self.selected_mode)
 
-    def open_settings(self):
-        print("Settings cog interaction detected!")
-
 if __name__ == "__main__":
-    app = SuperClickerGUI()
+    app = MousieApp()
     app.mainloop()
