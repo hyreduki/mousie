@@ -1,12 +1,18 @@
 import customtkinter as ctk
+import json
+import os
 from updater import MousieUpdater
-
+from modes.sleep import AntiSleepWorker
 
 class MousieApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         self.CURRENT_VERSION = "1.0.0"
+
+        # Calculate the absolute path to guarantee correct save location permissions
+        current_directory = os.path.dirname(os.path.abspath(__file__))
+        self.CONFIG_FILE = os.path.join(current_directory, "config.json")
 
         # Window configuration
         self.title("MOUSIE v1.0.0")
@@ -16,6 +22,19 @@ class MousieApp(ctk.CTk):
 
         self.selected_mode = None
         self.is_running = False
+        self.sleep_worker = None
+
+        # Default fallback configuration dataset
+        self.config_data = {
+            "strategy": "Mouse Micro-Movement",
+            "key_to_strike": "Right Shift",
+            "pixel_distance": 1,
+            "time_interval": 10,
+            "use_jitter": False,
+            "time_min": 10,
+            "time_max": 30
+        }
+        self.load_config()
 
         # Initialize the network update engine and pass this GUI instance to it
         self.updater = MousieUpdater(self)
@@ -161,7 +180,7 @@ class MousieApp(ctk.CTk):
             scroll_container = ctk.CTkFrame(self.right_frame, fg_color="transparent")
             scroll_container.pack(fill="both", expand=True, padx=20, pady=10)
 
-            # 1. Strategy Selector (Mouse vs Keyboard)
+            # 1. Strategy Selector (Mouse vs Keyboard) - Changed to CTkOptionMenu
             self.frame_strategy = ctk.CTkFrame(scroll_container, fg_color="transparent")
             self.frame_strategy.pack(fill="x", pady=(5, 12))
 
@@ -169,71 +188,111 @@ class MousieApp(ctk.CTk):
                                         text_color="#d0dbe5")
             lbl_strategy.pack(anchor="w", pady=(0, 2))
 
-            self.combo_strategy = ctk.CTkComboBox(
+            self.combo_strategy = ctk.CTkOptionMenu(
                 self.frame_strategy, values=["Mouse Micro-Movement", "Keyboard Key Strike"],
-                fg_color="#2a3543", border_color="#3a4959", button_color="#2a3543",
-                button_hover_color="#364556", text_color="#ffffff", dropdown_fg_color="#212b36",
-                dropdown_text_color="#ffffff", command=self._toggle_sleep_strategy_view
+                fg_color="#2a3543", button_color="#1e90ff", button_hover_color="#1872cc",
+                text_color="#ffffff", dropdown_fg_color="#212b36", dropdown_text_color="#ffffff",
+                command=lambda choice: [self.config_data.update({"strategy": choice}), self.save_config(),
+                                        self._toggle_sleep_strategy_view(choice)]
             )
+            self.combo_strategy.set(self.config_data.get("strategy", "Mouse Micro-Movement"))
             self.combo_strategy.pack(fill="x")
 
-            # 2. Key Selection Frame (Starts hidden/unpacked)
+            # 2. Key Selection Frame - Changed to CTkOptionMenu
             self.frame_key_select = ctk.CTkFrame(scroll_container, fg_color="transparent")
             lbl_key = ctk.CTkLabel(self.frame_key_select, text="Select Key to Strike:", font=("Segoe UI", 12, "bold"),
                                    text_color="#d0dbe5")
             lbl_key.pack(anchor="w", pady=(0, 2))
-            self.combo_key = ctk.CTkComboBox(
+
+            self.combo_key = ctk.CTkOptionMenu(
                 self.frame_key_select, values=["Right Shift", "+ (Plus Key)", "F15"],
-                fg_color="#2a3543", border_color="#3a4959", button_color="#2a3543",
-                text_color="#ffffff", dropdown_fg_color="#212b36", dropdown_text_color="#ffffff"
+                fg_color="#2a3543", button_color="#1e90ff", button_hover_color="#1872cc",
+                text_color="#ffffff", dropdown_fg_color="#212b36", dropdown_text_color="#ffffff",
+                command=lambda choice: [self.config_data.update({"key_to_strike": choice}), self.save_config()]
             )
+            self.combo_key.set(self.config_data.get("key_to_strike", "Right Shift"))
             self.combo_key.pack(fill="x")
 
-            # 3. Pixel Distance Slider Frame (Starts visible)
+            # 3. Pixel Distance Slider Frame
             self.frame_pixel_slider = ctk.CTkFrame(scroll_container, fg_color="transparent")
             self.frame_pixel_slider.pack(fill="x", pady=(0, 12))
 
-            self.lbl_pixels = ctk.CTkLabel(self.frame_pixel_slider, text="Pixel Distance: 1 px",
+            self.lbl_pixels = ctk.CTkLabel(self.frame_pixel_slider,
+                                           text=f"Pixel Distance: {self.config_data.get('pixel_distance', 1)} px",
                                            font=("Segoe UI", 12, "bold"), text_color="#d0dbe5")
             self.lbl_pixels.pack(anchor="w")
 
             self.slider_pixels = ctk.CTkSlider(
                 self.frame_pixel_slider, from_=1, to=100, number_of_steps=99,
                 fg_color="#2a3543", progress_color="#1e90ff", button_color="#1e90ff",
-                command=lambda v: self.lbl_pixels.configure(text=f"Pixel Distance: {int(v)} px")
+                command=lambda v: [self.lbl_pixels.configure(text=f"Pixel Distance: {int(v)} px"),
+                                   self.config_data.update({"pixel_distance": int(v)}), self.save_config()]
             )
-            self.slider_pixels.set(1)
+            self.slider_pixels.set(self.config_data.get("pixel_distance", 1))
             self.slider_pixels.pack(fill="x", pady=2)
 
-            # 4. Time Interval Slider Frame (Always visible)
-            self.frame_time_slider = ctk.CTkFrame(scroll_container, fg_color="transparent")
-            self.frame_time_slider.pack(fill="x", pady=(0, 12))
+            # 4. Master Time Container (Holds both slider and inputs)
+            self.frame_time_master = ctk.CTkFrame(scroll_container, fg_color="transparent")
+            self.frame_time_master.pack(fill="x", pady=(0, 12))
 
-            lbl_time = ctk.CTkLabel(self.frame_time_slider, text="Time Interval:", font=("Segoe UI", 12, "bold"),
+            # 4A. Single Slider View (For non-jitter mode)
+            self.frame_time_slider = ctk.CTkFrame(self.frame_time_master, fg_color="transparent")
+            lbl_time = ctk.CTkLabel(self.frame_time_slider, text="Exact Time Interval:", font=("Segoe UI", 12, "bold"),
                                     text_color="#d0dbe5")
             lbl_time.pack(anchor="w")
 
-            self.lbl_time_value = ctk.CTkLabel(self.frame_time_slider, text="10 seconds",
+            self.lbl_time_value = ctk.CTkLabel(self.frame_time_slider,
+                                               text=f"{self.config_data.get('time_interval', 10)} seconds",
                                                font=("Segoe UI", 11, "italic"), text_color="#8a99a8")
             self.lbl_time_value.pack(anchor="w", pady=(0, 2))
 
             self.slider_time = ctk.CTkSlider(
                 self.frame_time_slider, from_=1, to=500, number_of_steps=499,
                 fg_color="#2a3543", progress_color="#1e90ff", button_color="#1e90ff",
-                command=self._update_time_slider_label
+                command=lambda v: [self.lbl_time_value.configure(text=f"{int(v)} seconds"),
+                                   self.config_data.update({"time_interval": int(v)}), self.save_config()]
             )
-            self.slider_time.set(10)
+            self.slider_time.set(self.config_data.get("time_interval", 10))
             self.slider_time.pack(fill="x", pady=2)
 
-            # 5. Randomize Jitter Control Frame (Always visible at the bottom)
+            # 4B. Min/Max Input View (For jitter mode)
+            self.frame_time_inputs = ctk.CTkFrame(self.frame_time_master, fg_color="transparent")
+            lbl_rand_title = ctk.CTkLabel(self.frame_time_inputs, text="Randomized Execution Bounds:",
+                                          font=("Segoe UI", 12, "bold"), text_color="#d0dbe5")
+            lbl_rand_title.pack(anchor="w", pady=(0, 5))
+
+            input_row = ctk.CTkFrame(self.frame_time_inputs, fg_color="transparent")
+            input_row.pack(fill="x")
+
+            lbl_min = ctk.CTkLabel(input_row, text="Min (sec):", font=("Segoe UI", 12), text_color="#8a99a8")
+            lbl_min.pack(side="left", padx=(0, 5))
+            self.entry_min = ctk.CTkEntry(input_row, width=70, fg_color="#2a3543", border_color="#3a4959",
+                                          text_color="#ffffff")
+            self.entry_min.insert(0, str(self.config_data.get("time_min", 10)))
+            self.entry_min.pack(side="left", padx=(0, 25))
+
+            lbl_max = ctk.CTkLabel(input_row, text="Max (sec):", font=("Segoe UI", 12), text_color="#8a99a8")
+            lbl_max.pack(side="left", padx=(0, 5))
+            self.entry_max = ctk.CTkEntry(input_row, width=70, fg_color="#2a3543", border_color="#3a4959",
+                                          text_color="#ffffff")
+            self.entry_max.insert(0, str(self.config_data.get("time_max", 30)))
+            self.entry_max.pack(side="left")
+
+            # 5. Randomize Jitter Control Frame
             self.frame_jitter = ctk.CTkFrame(scroll_container, fg_color="transparent")
             self.frame_jitter.pack(fill="x", pady=(5, 0))
 
             self.switch_random = ctk.CTkSwitch(
                 self.frame_jitter, text="Enable Randomized Jitter", font=("Segoe UI", 12),
                 text_color="#d0dbe5", fg_color="#2a3543", progress_color="#1e90ff",
-                command=self._update_time_slider_label
+                command=self._toggle_jitter_view
             )
+            if self.config_data.get("use_jitter", False):
+                self.switch_random.select()
+                self.frame_time_inputs.pack(fill="x")
+            else:
+                self.switch_random.deselect()
+                self.frame_time_slider.pack(fill="x")
             self.switch_random.pack(side="left", anchor="w")
 
             self.btn_info = ctk.CTkButton(
@@ -242,6 +301,9 @@ class MousieApp(ctk.CTk):
                 command=self._show_jitter_info
             )
             self.btn_info.pack(side="left", padx=8)
+
+            # Trigger initial view layout
+            self._toggle_sleep_strategy_view(self.config_data.get("strategy", "Mouse Micro-Movement"))
 
         elif mode == "click":
             self.btn_click.configure(fg_color="#1a3d54", text_color="#ffffff", border_color="#1e90ff")
@@ -267,19 +329,22 @@ class MousieApp(ctk.CTk):
     def _toggle_sleep_strategy_view(self, choice):
         if choice == "Keyboard Key Strike":
             self.frame_pixel_slider.pack_forget()
-            self.frame_key_select.pack(fill="x", pady=(0, 12), before=self.frame_time_slider)
+            self.frame_key_select.pack(fill="x", pady=(0, 12), before=self.frame_time_master)
         else:
             self.frame_key_select.pack_forget()
-            self.frame_pixel_slider.pack(fill="x", pady=(0, 12), before=self.frame_time_slider)
+            self.frame_pixel_slider.pack(fill="x", pady=(0, 12), before=self.frame_time_master)
 
-    def _update_time_slider_label(self, value=None):
-        seconds = int(self.slider_time.get())
+    def _toggle_jitter_view(self):
+        # Swaps the slider and the min/max input fields dynamically
         if self.switch_random.get():
-            min_val = max(1, int(seconds * 0.75))
-            max_val = int(seconds * 1.25)
-            self.lbl_time_value.configure(text=f"Randomized between {min_val}s and {max_val}s (Target: {seconds}s)")
+            self.frame_time_slider.pack_forget()
+            self.frame_time_inputs.pack(fill="x")
         else:
-            self.lbl_time_value.configure(text=f"{seconds} seconds")
+            self.frame_time_inputs.pack_forget()
+            self.frame_time_slider.pack(fill="x")
+
+        self.config_data.update({"use_jitter": self.switch_random.get()})
+        self.save_config()
 
     def _show_jitter_info(self):
         # Clean information pop-up architecture for randomized intervals
@@ -311,8 +376,57 @@ class MousieApp(ctk.CTk):
         self.btn_stop.configure(state="normal")
         self.tip_label.configure(text=f"STATUS: RUNNING 🚀 ({self.selected_mode.upper()} ACTIVE)", text_color="#2ed573")
 
+        if self.selected_mode == "sleep":
+            strategy = self.combo_strategy.get()
+            key_to_strike = self.combo_key.get()
+            pixel_distance = int(self.slider_pixels.get())
+            time_interval = int(self.slider_time.get())
+            use_jitter = self.switch_random.get()
+
+            # Secure parsing for text entries to prevent crashes on non-numeric input
+            try:
+                time_min = int(self.entry_min.get())
+                time_max = int(self.entry_max.get())
+                self.config_data.update({"time_min": time_min, "time_max": time_max})
+                self.save_config()
+            except ValueError:
+                time_min, time_max = 10, 30
+
+            self.sleep_worker = AntiSleepWorker(
+                strategy=strategy,
+                key_to_strike=key_to_strike,
+                pixel_distance=pixel_distance,
+                time_interval=time_interval,
+                use_jitter=use_jitter,
+                time_min=time_min,
+                time_max=time_max
+            )
+            self.sleep_worker.start()
+
     def stop_action(self):
         self.is_running = False
         self.btn_stop.configure(state="disabled")
         self.btn_start.configure(state="normal")
+
+        if self.sleep_worker:
+            self.sleep_worker.stop()
+            self.sleep_worker = None
+
         self.select_mode(self.selected_mode)
+
+    def load_config(self):
+        if os.path.exists(self.CONFIG_FILE):
+            try:
+                with open(self.CONFIG_FILE, "r") as file:
+                    loaded_data = json.load(file)
+                    # Safely merge loaded data into defaults to prevent missing key crashes
+                    self.config_data.update(loaded_data)
+            except Exception as e:
+                print(f"[ERROR] Failed to load local configuration file: {e}")
+
+    def save_config(self):
+        try:
+            with open(self.CONFIG_FILE, "w") as file:
+                json.dump(self.config_data, file, indent=4)
+        except Exception as e:
+            print(f"[ERROR] Failed to save configuration layout state: {e}")
