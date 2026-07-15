@@ -16,7 +16,7 @@ class MousieApp(ctk.CTk):
 
         # Window configuration
         self.title("MOUSIE v1.0.0")
-        self.geometry("850x520")
+        self.geometry("850x840")
         self.resizable(False, False)
         self.configure(fg_color="#1a222d")
 
@@ -31,6 +31,8 @@ class MousieApp(ctk.CTk):
             "pixel_distance": 1,
             "time_interval": 10,
             "use_jitter": False,
+            "use_smart_idle": False,
+            "idle_threshold": 300,
             "time_min": 10,
             "time_max": 30
         }
@@ -181,15 +183,17 @@ class MousieApp(ctk.CTk):
 
             # Container for layout architecture inside the fixed frame
             scroll_container = ctk.CTkFrame(self.right_frame, fg_color="transparent")
-            scroll_container.pack(fill="both", expand=True, padx=20, pady=10)
+            scroll_container.pack(fill="both", expand=True, padx=16, pady=14)
 
-            # 1. Strategy Selector (Mouse vs Keyboard) - Changed to CTkOptionMenu
-            self.frame_strategy = ctk.CTkFrame(scroll_container, fg_color="transparent")
-            self.frame_strategy.pack(fill="x", pady=(5, 12))
+            # 1. Strategy section
+            strategy_body = self._create_settings_section(scroll_container, "STRATEGY")
+
+            self.frame_strategy = ctk.CTkFrame(strategy_body, fg_color="transparent")
+            self.frame_strategy.pack(fill="x", pady=(0, 14))
 
             lbl_strategy = ctk.CTkLabel(self.frame_strategy, text="Execution Strategy:", font=("Segoe UI", 12, "bold"),
                                         text_color="#d0dbe5")
-            lbl_strategy.pack(anchor="w", pady=(0, 2))
+            lbl_strategy.pack(anchor="w", pady=(0, 6))
 
             self.combo_strategy = ctk.CTkOptionMenu(
                 self.frame_strategy, values=["Mouse Micro-Movement", "Keyboard Key Strike"],
@@ -201,11 +205,11 @@ class MousieApp(ctk.CTk):
             self.combo_strategy.set(self.config_data.get("strategy", "Mouse Micro-Movement"))
             self.combo_strategy.pack(fill="x")
 
-            # 2. Key Selection Frame - Changed to CTkOptionMenu
-            self.frame_key_select = ctk.CTkFrame(scroll_container, fg_color="transparent")
+            self.frame_strategy_details = ctk.CTkFrame(strategy_body, fg_color="transparent")
+            self.frame_key_select = ctk.CTkFrame(self.frame_strategy_details, fg_color="transparent")
             lbl_key = ctk.CTkLabel(self.frame_key_select, text="Select Key to Strike:", font=("Segoe UI", 12, "bold"),
                                    text_color="#d0dbe5")
-            lbl_key.pack(anchor="w", pady=(0, 2))
+            lbl_key.pack(anchor="w", pady=(0, 6))
 
             self.combo_key = ctk.CTkOptionMenu(
                 self.frame_key_select, values=["Right Shift", "+ (Plus Key)", "F15"],
@@ -216,14 +220,11 @@ class MousieApp(ctk.CTk):
             self.combo_key.set(self.config_data.get("key_to_strike", "Right Shift"))
             self.combo_key.pack(fill="x")
 
-            # 3. Pixel Distance Slider Frame
-            self.frame_pixel_slider = ctk.CTkFrame(scroll_container, fg_color="transparent")
-            self.frame_pixel_slider.pack(fill="x", pady=(0, 12))
-
+            self.frame_pixel_slider = ctk.CTkFrame(self.frame_strategy_details, fg_color="transparent")
             self.lbl_pixels = ctk.CTkLabel(self.frame_pixel_slider,
                                            text=f"Pixel Distance: {self.config_data.get('pixel_distance', 1)} px",
                                            font=("Segoe UI", 12, "bold"), text_color="#d0dbe5")
-            self.lbl_pixels.pack(anchor="w")
+            self.lbl_pixels.pack(anchor="w", pady=(0, 4))
 
             self.slider_pixels = ctk.CTkSlider(
                 self.frame_pixel_slider, from_=1, to=500, number_of_steps=499,
@@ -232,22 +233,48 @@ class MousieApp(ctk.CTk):
                                    self.config_data.update({"pixel_distance": int(v)}), self.save_config()]
             )
             self.slider_pixels.set(self.config_data.get("pixel_distance", 1))
-            self.slider_pixels.pack(fill="x", pady=2)
+            self.slider_pixels.pack(fill="x", pady=(0, 4))
 
-            # 4. Master Time Container (Holds both slider and inputs)
-            self.frame_time_master = ctk.CTkFrame(scroll_container, fg_color="transparent")
-            self.frame_time_master.pack(fill="x", pady=(0, 12))
+            # 2. Timing section
+            timing_body = self._create_settings_section(scroll_container, "TIMING")
 
-            # 4A. Single Slider View (For non-jitter mode)
+            self.frame_timing_section = timing_body
+            self.frame_jitter = ctk.CTkFrame(self.frame_timing_section, fg_color="transparent")
+            self.frame_jitter.pack(fill="x")
+
+            self.switch_random = ctk.CTkSwitch(
+                self.frame_jitter, text="Enable Randomized Jitter", font=("Segoe UI", 12),
+                text_color="#d0dbe5", fg_color="#2a3543", progress_color="#1e90ff",
+                command=self._toggle_jitter_view
+            )
+            self.switch_random.pack(side="left", anchor="w")
+
+            self.btn_info = ctk.CTkButton(
+                self.frame_jitter, text="ⓘ", width=20, height=20, font=("Segoe UI", 12, "bold"),
+                fg_color="transparent", text_color="#1e90ff", hover_color="#2a3543"
+            )
+            self.btn_info.pack(side="left", padx=8)
+            self.btn_info.bind(
+                "<Enter>",
+                lambda e: self._show_tooltip(
+                    e,
+                    "Randomized Jitter prevents monitoring tools from detecting automated activity.\n\n"
+                    "It slightly shifts the delay dynamically each turn to create a human-like pattern."
+                )
+            )
+            self.btn_info.bind("<Leave>", self._hide_tooltip)
+
+            self.frame_time_master = ctk.CTkFrame(self.frame_timing_section, fg_color="transparent")
+
             self.frame_time_slider = ctk.CTkFrame(self.frame_time_master, fg_color="transparent")
             lbl_time = ctk.CTkLabel(self.frame_time_slider, text="Exact Time Interval:", font=("Segoe UI", 12, "bold"),
                                     text_color="#d0dbe5")
-            lbl_time.pack(anchor="w")
+            lbl_time.pack(anchor="w", pady=(0, 4))
 
             self.lbl_time_value = ctk.CTkLabel(self.frame_time_slider,
                                                text=f"{self.config_data.get('time_interval', 10)} seconds",
                                                font=("Segoe UI", 11, "italic"), text_color="#8a99a8")
-            self.lbl_time_value.pack(anchor="w", pady=(0, 2))
+            self.lbl_time_value.pack(anchor="w", pady=(0, 6))
 
             self.slider_time = ctk.CTkSlider(
                 self.frame_time_slider, from_=1, to=500, number_of_steps=499,
@@ -256,13 +283,12 @@ class MousieApp(ctk.CTk):
                                    self.config_data.update({"time_interval": int(v)}), self.save_config()]
             )
             self.slider_time.set(self.config_data.get("time_interval", 10))
-            self.slider_time.pack(fill="x", pady=2)
+            self.slider_time.pack(fill="x", pady=(0, 4))
 
-            # 4B. Min/Max Input View (For jitter mode)
             self.frame_time_inputs = ctk.CTkFrame(self.frame_time_master, fg_color="transparent")
             lbl_rand_title = ctk.CTkLabel(self.frame_time_inputs, text="Randomized Execution Bounds:",
                                           font=("Segoe UI", 12, "bold"), text_color="#d0dbe5")
-            lbl_rand_title.pack(anchor="w", pady=(0, 5))
+            lbl_rand_title.pack(anchor="w", pady=(0, 8))
 
             input_row = ctk.CTkFrame(self.frame_time_inputs, fg_color="transparent")
             input_row.pack(fill="x")
@@ -281,34 +307,74 @@ class MousieApp(ctk.CTk):
             self.entry_max.insert(0, str(self.config_data.get("time_max", 30)))
             self.entry_max.pack(side="left")
 
-            # 5. Randomize Jitter Control Frame
-            self.frame_jitter = ctk.CTkFrame(scroll_container, fg_color="transparent")
-            self.frame_jitter.pack(fill="x", pady=(5, 0))
+            # 3. Smart idle section
+            smart_idle_body = self._create_settings_section(scroll_container, "SMART IDLE")
 
-            self.switch_random = ctk.CTkSwitch(
-                self.frame_jitter, text="Enable Randomized Jitter", font=("Segoe UI", 12),
+            self.frame_smart_idle_section = smart_idle_body
+            self.frame_smart_idle = ctk.CTkFrame(self.frame_smart_idle_section, fg_color="transparent")
+            self.frame_smart_idle.pack(fill="x")
+
+            self.switch_smart_idle = ctk.CTkSwitch(
+                self.frame_smart_idle, text="Enable Smart Idle Detection", font=("Segoe UI", 12),
                 text_color="#d0dbe5", fg_color="#2a3543", progress_color="#1e90ff",
-                command=self._toggle_jitter_view
+                command=self._toggle_smart_idle_view
             )
-            if self.config_data.get("use_jitter", False):
-                self.switch_random.select()
-                self.frame_time_inputs.pack(fill="x")
-            else:
-                self.switch_random.deselect()
-                self.frame_time_slider.pack(fill="x")
-            self.switch_random.pack(side="left", anchor="w")
+            self.switch_smart_idle.pack(side="left", anchor="w")
 
-            self.btn_info = ctk.CTkButton(
-                self.frame_jitter, text="ⓘ", width=20, height=20, font=("Segoe UI", 12, "bold"),
+            self.btn_smart_idle_info = ctk.CTkButton(
+                self.frame_smart_idle, text="ⓘ", width=20, height=20, font=("Segoe UI", 12, "bold"),
                 fg_color="transparent", text_color="#1e90ff", hover_color="#2a3543"
             )
-            self.btn_info.pack(side="left", padx=8)
+            self.btn_smart_idle_info.pack(side="left", padx=8)
+            self.btn_smart_idle_info.bind(
+                "<Enter>",
+                lambda e: self._show_tooltip(
+                    e,
+                    "Smart Idle Detection only acts when you are truly inactive.\n\n"
+                    "It waits for the Idle Threshold before the first action, then repeats on your "
+                    "set interval until you use the mouse or keyboard again."
+                )
+            )
+            self.btn_smart_idle_info.bind("<Leave>", self._hide_tooltip)
 
-            # Bind hover events for the tooltip
-            self.btn_info.bind("<Enter>", self._show_tooltip)
-            self.btn_info.bind("<Leave>", self._hide_tooltip)
+            self.frame_idle_threshold = ctk.CTkFrame(self.frame_smart_idle_section, fg_color="transparent")
+            self.frame_idle_threshold.grid_columnconfigure(0, weight=1)
+            self.frame_idle_threshold.grid_rowconfigure(2, minsize=18)
 
-            # Trigger initial view layout
+            lbl_idle = ctk.CTkLabel(self.frame_idle_threshold, text="Idle Threshold (before first action):",
+                                    font=("Segoe UI", 12, "bold"), text_color="#d0dbe5")
+            lbl_idle.grid(row=0, column=0, sticky="w", pady=(0, 4))
+
+            self.lbl_idle_value = ctk.CTkLabel(
+                self.frame_idle_threshold,
+                text=f"{self.config_data.get('idle_threshold', 300)} seconds",
+                font=("Segoe UI", 11, "italic"), text_color="#8a99a8"
+            )
+            self.lbl_idle_value.grid(row=1, column=0, sticky="w", pady=(0, 6))
+
+            self.slider_idle_threshold = ctk.CTkSlider(
+                self.frame_idle_threshold, from_=1, to=1800, number_of_steps=1799, height=16,
+                fg_color="#2a3543", progress_color="#1e90ff", button_color="#1e90ff",
+                command=lambda v: [self.lbl_idle_value.configure(text=f"{int(v)} seconds"),
+                                   self.config_data.update({"idle_threshold": int(v)}), self.save_config()]
+            )
+            self.slider_idle_threshold.set(self.config_data.get("idle_threshold", 300))
+            self.slider_idle_threshold.grid(row=2, column=0, sticky="ew", pady=(0, 4))
+
+            # Apply initial toggle states in fixed visual order
+            if self.config_data.get("use_jitter", False):
+                self.switch_random.select()
+            else:
+                self.switch_random.deselect()
+            self._toggle_jitter_view()
+
+            if self.config_data.get("use_smart_idle", False):
+                self.switch_smart_idle.select()
+            else:
+                self.switch_smart_idle.deselect()
+            self._toggle_smart_idle_view()
+            self.after(50, self._refresh_idle_slider)
+
             self._toggle_sleep_strategy_view(self.config_data.get("strategy", "Mouse Micro-Movement"))
 
         elif mode == "click":
@@ -339,28 +405,58 @@ class MousieApp(ctk.CTk):
             fg_color="#2a3543", text_color="#5f758a", hover_color="#2a3543", border_color="#3a4959"
         )
 
+    def _create_settings_section(self, parent, title):
+        card = ctk.CTkFrame(parent, fg_color="#1a222d", corner_radius=8, border_width=1, border_color="#2d3945")
+        card.pack(fill="x", pady=(0, 14))
+
+        header = ctk.CTkLabel(card, text=title, font=("Segoe UI", 11, "bold"), text_color="#8a99a8")
+        header.pack(anchor="w", padx=16, pady=(14, 10))
+
+        body = ctk.CTkFrame(card, fg_color="transparent")
+        body.pack(fill="x", padx=16, pady=(0, 14))
+        return body
+
     # --- UI HELPER METHODS FOR DYNAMIC VIEWPORTS ---
     def _toggle_sleep_strategy_view(self, choice):
         if choice == "Keyboard Key Strike":
             self.frame_pixel_slider.pack_forget()
-            self.frame_key_select.pack(fill="x", pady=(0, 12), before=self.frame_time_master)
+            self.frame_key_select.pack(fill="x")
         else:
             self.frame_key_select.pack_forget()
-            self.frame_pixel_slider.pack(fill="x", pady=(0, 12), before=self.frame_time_master)
+            self.frame_pixel_slider.pack(fill="x")
+        self.frame_strategy_details.pack(fill="x")
 
     def _toggle_jitter_view(self):
-        # Swaps the slider and the min/max input fields dynamically
+        self.frame_time_slider.pack_forget()
+        self.frame_time_inputs.pack_forget()
+
         if self.switch_random.get():
-            self.frame_time_slider.pack_forget()
             self.frame_time_inputs.pack(fill="x")
         else:
-            self.frame_time_inputs.pack_forget()
             self.frame_time_slider.pack(fill="x")
+
+        self.frame_time_master.pack(fill="x", pady=(14, 0))
 
         self.config_data.update({"use_jitter": self.switch_random.get()})
         self.save_config()
 
-    def _show_tooltip(self, event):
+    def _toggle_smart_idle_view(self):
+        self.frame_idle_threshold.pack_forget()
+
+        if self.switch_smart_idle.get():
+            self.frame_idle_threshold.pack(fill="x", pady=(14, 0))
+            self.after(10, self._refresh_idle_slider)
+
+        self.config_data.update({"use_smart_idle": self.switch_smart_idle.get()})
+        self.save_config()
+
+    def _refresh_idle_slider(self):
+        if hasattr(self, "slider_idle_threshold"):
+            self.frame_idle_threshold.grid_rowconfigure(2, minsize=18)
+            self.slider_idle_threshold.configure(height=16)
+            self.slider_idle_threshold._draw()
+
+    def _show_tooltip(self, event, text):
         self.tooltip = ctk.CTkToplevel(self)
         self.tooltip.overrideredirect(True)  # Removes the Windows border/title bar
         self.tooltip.attributes("-topmost", True)
@@ -375,12 +471,7 @@ class MousieApp(ctk.CTk):
         border = ctk.CTkFrame(self.tooltip, fg_color="#212b36", border_width=1, border_color="#3a4959", corner_radius=4)
         border.pack(fill="both", expand=True)
 
-        txt = (
-            "Randomized Jitter prevents monitoring tools from detecting automated activity.\n\n"
-            "It slightly shifts the delay dynamically each turn to create a human-like pattern."
-        )
-
-        lbl = ctk.CTkLabel(border, text=txt, font=("Segoe UI", 11), text_color="#d0dbe5", wraplength=250,
+        lbl = ctk.CTkLabel(border, text=text, font=("Segoe UI", 11), text_color="#d0dbe5", wraplength=250,
                            justify="left")
         lbl.pack(padx=12, pady=10)
 
@@ -418,6 +509,8 @@ class MousieApp(ctk.CTk):
             pixel_distance = int(self.slider_pixels.get())
             time_interval = int(self.slider_time.get())
             use_jitter = self.switch_random.get()
+            use_smart_idle = self.switch_smart_idle.get()
+            idle_threshold = int(self.slider_idle_threshold.get())
 
             # Secure parsing for text entries to prevent crashes on non-numeric input
             try:
@@ -440,6 +533,9 @@ class MousieApp(ctk.CTk):
             self.slider_time.configure(state="disabled", progress_color=disabled_accent, button_color=disabled_text)
 
             self.switch_random.configure(state="disabled", text_color=disabled_text, progress_color=disabled_accent)
+            self.switch_smart_idle.configure(state="disabled", text_color=disabled_text, progress_color=disabled_accent)
+            self.slider_idle_threshold.configure(state="disabled", progress_color=disabled_accent,
+                                                   button_color=disabled_text)
 
             self.entry_min.configure(state="disabled", text_color=disabled_text)
             self.entry_max.configure(state="disabled", text_color=disabled_text)
@@ -447,6 +543,7 @@ class MousieApp(ctk.CTk):
             # Dim the dynamic text labels as well for a complete locked-down look
             self.lbl_pixels.configure(text_color=disabled_text)
             self.lbl_time_value.configure(text_color=disabled_text)
+            self.lbl_idle_value.configure(text_color=disabled_text)
 
             self.sleep_worker = AntiSleepWorker(
                 strategy=strategy,
@@ -454,6 +551,8 @@ class MousieApp(ctk.CTk):
                 pixel_distance=pixel_distance,
                 time_interval=time_interval,
                 use_jitter=use_jitter,
+                use_smart_idle=use_smart_idle,
+                idle_threshold=idle_threshold,
                 time_min=time_min,
                 time_max=time_max
             )
@@ -477,6 +576,8 @@ class MousieApp(ctk.CTk):
                     loaded_data = json.load(file)
                     # Safely merge loaded data into defaults to prevent missing key crashes
                     self.config_data.update(loaded_data)
+                    self.config_data["use_jitter"] = bool(self.config_data.get("use_jitter", False))
+                    self.config_data["use_smart_idle"] = bool(self.config_data.get("use_smart_idle", False))
             except Exception as e:
                 print(f"[ERROR] Failed to load local configuration file: {e}")
 

@@ -1,9 +1,11 @@
 {
     "strategy": "Mouse Micro-Movement",
-    "key_to_strike": "Right Shift",
-    "pixel_distance": 465,
+    "key_to_strike": "F15",
+    "pixel_distance": 1,
     "time_interval": 2,
     "use_jitter": 0,
+    "use_smart_idle": 0,
+    "idle_threshold": 278,
     "time_min": 10,
     "time_max": 30
 }

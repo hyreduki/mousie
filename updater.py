@@ -27,8 +27,11 @@ class MousieUpdater:
         except Exception as e:
             print(f"Update verification routine failed: {e}")
 
+    def _set_tip_label(self, text, text_color):
+        self.app.after(0, lambda: self.app.tip_label.configure(text=text, text_color=text_color))
+
     def start_download_worker(self, download_url):
-        self.app.tip_label.configure(text="Downloading new deployment asset from GitHub... ⏳", text_color="#1e90ff")
+        self._set_tip_label("Downloading new deployment asset from GitHub... ⏳", "#1e90ff")
         threading.Thread(target=self._download_executor, args=(download_url,), daemon=True).start()
 
     def _download_executor(self, url):
@@ -42,8 +45,7 @@ class MousieUpdater:
                     if chunk:
                         file_stream.write(chunk)
 
-            self.app.tip_label.configure(text="Download complete! Initializing setup process...", text_color="#2ed573")
-            subprocess.Popen([download_path], shell=True)
-            self.app.quit()
+            self._set_tip_label("Download complete! Initializing setup process...", "#2ed573")
+            self.app.after(0, lambda: [subprocess.Popen([download_path], shell=True), self.app.quit()])
         except Exception as e:
-            self.app.tip_label.configure(text=f"Download transaction routine failed: {e}", text_color="#ff4757")
+            self._set_tip_label(f"Download transaction routine failed: {e}", "#ff4757")
