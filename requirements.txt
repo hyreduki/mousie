@@ -1,3 +1,5 @@
 customtkinter
 pyautogui
 requests
+mss
+numpy
